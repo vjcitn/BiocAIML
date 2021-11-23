@@ -1,0 +1,4 @@
+FROM us.gcr.io/anvil-gcr-public/anvil-rstudio-bioconductor-devel:3.14.2
+
+COPY cudnn-11.4-linux-x64-v8.2.4.15.tgz /tmp
+RUN tar zxf /tmp/cudnn-11.4-linux-x64-v8.2.4.15.tgz 
