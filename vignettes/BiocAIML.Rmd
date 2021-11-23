@@ -1,0 +1,91 @@
+---
+title: "BiocAIML: machine learning in genomics with Bioconductor"
+author: "Vincent J. Carey, stvjc at channing.harvard.edu"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{BiocAIML: machine learning in genomics with Bioconductor}
+  %\VignetteEncoding{UTF-8}
+output:
+  BiocStyle::html_document:
+    highlight: pygments
+    number_sections: yes
+    theme: united
+    toc: yes
+    fig_crop: false
+bibliography: biocaiml.bib
+---
+
+# Introduction
+
+Machine learning methods have long been central to computational
+biology.  The BiocAIML package aims to illustrate the use
+of new approaches to machine learning with R in the
+context of genome research.
+
+# Taster: classification in glioblastoma multiforme (GBM)
+
+## Data setup
+
+An illustrative dataset derived from the Cancer Genome Atlas (TCGA)
+is available with the BiocAIML package.  This dataset will
+be retrieved from the cloud using `r BiocStyle::Biocpkg("curatedTCGAData")`,
+massaged to include clinical data published in
+@Brennan2013
+and cached for future use.
+
+```{r lktcg}
+suppressPackageStartupMessages({
+library(BiocAIML)
+library(survival)
+library(rpart)
+})
+gbmse = build_gbm_se()
+gbmse
+```
+
+## Sanity check
+
+As a sanity check, we show that MGMT methylation status is
+associated with longer survival times in this dataset.
+
+```{r lksurv}
+xm = gbmse[, gbmse$mgmt_status !="" & gbmse$vital_status !=""]
+ss = Surv(xm$os_days, 1*(xm$vital_status=="DECEASED"))
+plot(survfit(ss~xm$mgmt_status), lty=1:2)
+legend(900, .95, lty=c(1,2), legend=c("MGMT methylated", "unmethylated"))
+title("Time-on-study/vital status for 123 GBM patients\nanalyzed in Brennan et al. PMID 24120142")
+```
+
+## Classification with randomly chosen features
+
+Let's pick a random sample of 100 genes and classify the
+'expression-based' subtype of GBM using `r CRANpkg("survival")`'s
+`rpart`.
+
+```{r dotree1}
+set.seed(1234)
+xms = xm[sample(seq_len(nrow(xm)), size=100),]
+xmsdf = data.frame(cl=xms$expression_subclass, t(assay(xms)))
+rp1 = rpart(cl~., data=xmsdf)
+tt = table(predicted=predict(rp1, type="class"), given=na.omit(xmsdf$cl))
+tt
+```
+There are `r sum(tt)-sum(diag(tt))` "errors" in 122 predictions.
+The associated tree is:
+```{r lktr,fig.width=7, out.width="77%", fig.height=7, out.height="77%"}
+plot(rp1)
+text(rp1)
+```
+and the cross-validated error profile is
+```{r lkcp}
+plotcp(rp1)
+```
+This indicates that the best tree obtainable with these
+features (100 randomly sampled genes) has 8 nodes and a relative
+error (compared to declaring all patients to have the majority
+class) of around 80%.  
+
+
+
+# References
