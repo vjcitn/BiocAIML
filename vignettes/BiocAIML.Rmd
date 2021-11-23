@@ -39,6 +39,7 @@ suppressPackageStartupMessages({
 library(BiocAIML)
 library(survival)
 library(rpart)
+library(SummarizedExperiment)
 })
 gbmse = build_gbm_se()
 gbmse
@@ -71,16 +72,20 @@ rp1 = rpart(cl~., data=xmsdf)
 tt = table(predicted=predict(rp1, type="class"), given=na.omit(xmsdf$cl))
 tt
 ```
+
 There are `r sum(tt)-sum(diag(tt))` "errors" in 122 predictions.
 The associated tree is:
-```{r lktr,fig.width=7, out.width="77%", fig.height=7, out.height="77%"}
+
+```{r lktr,fig.width=7, out.width="67%", fig.height=7, out.height="67%"}
 plot(rp1)
 text(rp1)
 ```
+
 and the cross-validated error profile is
 ```{r lkcp}
 plotcp(rp1)
 ```
+
 This indicates that the best tree obtainable with these
 features (100 randomly sampled genes) has 8 nodes and a relative
 error (compared to declaring all patients to have the majority
